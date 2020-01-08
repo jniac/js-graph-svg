@@ -1,3 +1,4 @@
+import * as Draw from './Draw.js'
 import { dosvg, assignReadonly } from './helpers.js'
 
 const getLayersProxy = (graph) => new Proxy({}, {
@@ -20,6 +21,7 @@ class Layer {
         this.graph = graph
         this.g = dosvg('g', { id:name })
         this.objects = []
+        this.name = name
 
         graph.svg.insertBefore(this.g, graph.bounds)
 
@@ -35,17 +37,38 @@ class Layer {
 
         this.clear()
 
-        for (const [name, params, props] of this.objects) {
+        const { g } = this
+        const { view, width, height } = this.graph
 
-            this[name](...params, props)
+        for (const bundle of this.objects) {
+
+            const [key, params, props, current] = bundle
+
+            if (!(key in this)) {
+
+                console.warn(`layer "${this.name}" cannot draw [${key}]`)
+                continue
+
+            }
+
+            // Draw and save element
+            Draw.setup(g, view, width, height, current)
+            bundle[3] = Draw[key](...params, props)
 
         }
 
     }
 
-    add(name, params, props) {
+    add(key, params, props) {
 
-        this.objects.push([name, params, props])
+        const { g } = this
+        const { view, width, height } = this.graph
+        Draw.setup(g, view, width, height, null)
+        
+        const bundle = [key, params, props, null]
+        bundle[3] = Draw[key](...params, props)
+
+        this.objects.push(bundle)
 
     }
 

@@ -1,10 +1,9 @@
 import Rectangle from './Rectangle.js'
 import Layer from './Layer.js'
-import Canvas from './Canvas.js'
 import Pointer from './Pointer.js'
 import style from './style.js'
 import * as Draw from './Draw.js'
-import { dosvg, enumerate } from './helpers.js'
+import { dosvg, enumerate, removeLineHeadingSpaces } from './helpers.js'
 
 class Graph {
 
@@ -22,9 +21,8 @@ class Graph {
         const bounds = dosvg('rect', { parent:svg, fill:'none', stroke:'black' })
         const layers = Layer.getLayersProxy(this)
         const pointer = new Pointer(this)
-        const canvas = new Canvas(this)
 
-        Object.assign(this, { bounds, layers, pointer, canvas })
+        Object.assign(this, { bounds, layers, pointer })
 
         this.setSize(width, height)
 
@@ -57,7 +55,8 @@ class Graph {
         wrapper.style.width = `${width}px`
         wrapper.style.height = `${height}px`
 
-        canvas.setSize(width, height)
+        for (const canvas of wrapper.querySelectorAll('canvas'))
+            canvas.setSize(width, height)
 
         this.draw()
 
@@ -82,7 +81,13 @@ class Graph {
         for (let child of element.children) {
 
             const { localName:name } = child
-            const params = new Function(`return [${child.innerText}]`)()
+            const text = removeLineHeadingSpaces(child.innerText)
+            child.innerText = text
+
+            if (name === 'shader')
+                continue
+
+            const params = new Function(`return [${text}]`)()
 
             const { blend, ...props } = [...child.attributes].reduce((acc, { name, value }) => ({ [name]:value, ...acc }), {})
 
@@ -96,6 +101,16 @@ class Graph {
         element.graph = this
 
         this.draw()
+
+    }
+
+    isVisible() {
+
+        const { x, y, width, height } = this.wrapper.getBoundingClientRect()
+        const rectWrapper = new Rectangle(x, y, width, height)
+        const rectWindow = new Rectangle(0, 0, window.innerWidth, window.innerHeight)
+
+        return rectWrapper.union(rectWindow).area > 0
 
     }
 

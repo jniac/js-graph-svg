@@ -10,13 +10,14 @@ const enumerateCeil = (min, max, step) => enumerate({ min:ceil(min, step), max:c
 
 
 // context
-let parent, view, width, height, colors = ['black']
+let parent, view, width, height, current
+let colors = ['black']
 
 
 
 // initialize context
-export const setup = (_parent, _view, _width, _height) =>
-    ([parent, view, width, height] = [_parent, _view, _width, _height])
+export const setup = (_parent, _view, _width, _height, _current) =>
+    ([parent, view, width, height, current] = [_parent, _view, _width, _height, _current])
 
 
 export const lineX = (x, props = {}) => {
@@ -40,6 +41,8 @@ export const lineY = (y, props = {}) => {
 
 
 export const grid = (step = 1) => {
+
+    parent = dosvg('g', { parent })
 
     for (let x of enumerateCeil(view.x, view.maxX, step))
         lineX(x, { stroke:notNull(x) ? '#0001' : '#000' })
@@ -70,7 +73,7 @@ export const func = (f, props = {}) => {
         .map(x => pointString(x, getY(x)))
         .join(' ')
 
-    return dosvg('polyline', { points, parent, stroke, fill:'none', ...rest })
+    return dosvg(current || 'polyline', { points, parent, stroke, fill:'none', ...rest })
 
 }
 

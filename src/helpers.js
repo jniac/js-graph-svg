@@ -45,10 +45,20 @@ const assignReadonly = (target, { enumerable = false, ...props }) => {
 
 }
 
+const removeLineHeadingSpaces = str => {
+
+    const lines = str.split('\n').filter(line => /\S/.test(line))
+    const [heading] = /^\s*/.exec(lines[0])
+
+    return lines.map(line => line.replace(new RegExp(`^${heading}`), '')).join('\n')
+
+}
+
 export {
 
     dosvg,
     enumerate,
     assignReadonly,
+    removeLineHeadingSpaces,
 
 }

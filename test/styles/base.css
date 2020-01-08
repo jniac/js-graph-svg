@@ -17,7 +17,10 @@ h1 {
 
 graph {
 	margin-top: 16px;
-	margin-bottom: 128px;
+	margin-bottom: 192px;
+}
+graph > * {
+	white-space: pre;
 }
 graph div.graph-wrapper {
 	margin-top: 16px;

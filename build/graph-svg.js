@@ -1,6 +1,6 @@
 /*
 	graph-svg.js
-	2020-01-08 10:43 GMT(+1)
+	2020-01-08 11:54 GMT(+1)
 	js toolkit
 	https://github.com/jniac/js-graph-svg
 */
@@ -31,6 +31,38 @@
 	        this.y += y;
 
 	    }
+
+	    union(other) {
+
+	        let x = Math.max(this.x, other.x);
+	        let y = Math.max(this.y, other.y);
+	        let maxX = Math.min(this.maxX, other.maxX);
+	        let maxY = Math.min(this.maxY, other.maxY);
+
+	        let width = maxX - x;
+	        let height = maxY - y;
+
+	        if (width < 0) {
+
+	            x = (x + maxX) / 2;
+	            width = 0;
+
+	        }
+
+	        if (height < 0) {
+
+	            y = (y + maxY) / 2;
+	            height = 0;
+
+	        }
+
+	        this.set(x, y, width, height);
+
+	        return this
+
+	    }
+
+	    get area() { return this.width * this.height }
 
 	    get maxX() { return this.x + this.width }
 	    get maxY() { return this.y + this.height }
@@ -91,6 +123,122 @@
 
 	};
 
+	const removeLineHeadingSpaces = str => {
+
+	    const lines = str.split('\n').filter(line => /\S/.test(line));
+	    const [heading] = /^\s*/.exec(lines[0]);
+
+	    return lines.map(line => line.replace(new RegExp(`^${heading}`), '')).join('\n')
+
+	};
+
+	const EPSILON = 1e-6;
+	const notNull = x => x < -EPSILON || x > EPSILON;
+	const ceil = (x, step = 1) => Math.ceil(x / step) * step;
+	const enumerateCeil = (min, max, step) => enumerate({ min:ceil(min, step), max:ceil(max, step), step });
+
+
+
+	// context
+	let parent, view, width, height, current;
+	let colors = ['black'];
+
+
+
+	// initialize context
+	const setup = (_parent, _view, _width, _height, _current) =>
+	    ([parent, view, width, height, current] = [_parent, _view, _width, _height, _current]);
+
+
+	const lineX = (x, props = {}) => {
+
+	    const { stroke = colors[0], ...rest } = props;
+	    x = view.worldX(x) * width;
+	    dosvg('line', { x1:x, x2:x, y1:0, y2:height, stroke, parent, ...rest });
+
+	};
+
+
+
+	const lineY = (y, props = {}) => {
+
+	    const { stroke = colors[0], ...rest } = props;
+	    y = (1 - view.worldY(y)) * height;
+	    dosvg('line', { x1:0, x2:width, y1:y, y2:y, stroke, parent, ...rest });
+
+	};
+
+
+
+	const grid = (step = 1) => {
+
+	    parent = dosvg('g', { parent });
+
+	    for (let x of enumerateCeil(view.x, view.maxX, step))
+	        lineX(x, { stroke:notNull(x) ? '#0001' : '#000' });
+
+	    for (let y of enumerateCeil(view.y, view.maxY, step))
+	        lineY(y, { stroke:notNull(y) ? '#0001' : '#000' });
+
+	};
+
+
+
+	const func = (f, props = {}) => {
+
+	    const getY = x => {
+
+	        let y = f(view.localX(x / width));
+	        return (1 - view.worldY(y)) * height
+
+	    };
+
+	    const pointString = (x, y, decimal = 1) => x.toFixed(decimal) + ',' + y.toFixed(decimal);
+
+	    const { stroke = colors[0], blend, ...rest } = props;
+
+	    const margin = 1 + parseFloat(props['stroke-width'] || 0) / 2;
+	    const min = -margin, max = width + margin;
+	    const points = [...enumerate({ min, max, step:3, includeMax:true })]
+	        .map(x => pointString(x, getY(x)))
+	        .join(' ');
+
+	    return dosvg(current || 'polyline', { points, parent, stroke, fill:'none', ...rest })
+
+	};
+
+
+
+	const point = (x, y, props = {}) => {
+
+	    const {
+
+	        color = 'black',
+	        label = null,
+
+	    } = props;
+
+	    const cx = view.worldY(x) * width;
+	    const cy = (1 - view.worldY(y)) * height;
+
+	    dosvg('circle', { cx, cy, r:4, parent, fill:color, stroke:'none' });
+
+	    if (label)
+	        dosvg('text', { x:cx + 5, y:cy,
+	            style: 'font-size: 8px;',
+	            children:label, parent, fill:color, stroke:'none' });
+
+	};
+
+	var Draw = /*#__PURE__*/Object.freeze({
+		setup: setup,
+		lineX: lineX,
+		lineY: lineY,
+		grid: grid,
+		func: func,
+		point: point
+	});
+
 	const getLayersProxy = (graph) => new Proxy({}, {
 
 	    get: (target, key) => {
@@ -111,6 +259,7 @@
 	        this.graph = graph;
 	        this.g = dosvg('g', { id:name });
 	        this.objects = [];
+	        this.name = name;
 
 	        graph.svg.insertBefore(this.g, graph.bounds);
 
@@ -126,55 +275,44 @@
 
 	        this.clear();
 
-	        for (const [name, params, props] of this.objects) {
+	        const { g } = this;
+	        const { view, width, height } = this.graph;
 
-	            this[name](...params, props);
+	        for (const bundle of this.objects) {
+
+	            const [key, params, props, current] = bundle;
+
+	            if (!(key in this)) {
+
+	                console.warn(`layer "${this.name}" cannot draw [${key}]`);
+	                continue
+
+	            }
+
+	            // Draw and save element
+	            setup(g, view, width, height, current);
+	            bundle[3] = Draw[key](...params, props);
 
 	        }
 
 	    }
 
-	    add(name, params, props) {
+	    add(key, params, props) {
 
-	        this.objects.push([name, params, props]);
+	        const { g } = this;
+	        const { view, width, height } = this.graph;
+	        setup(g, view, width, height, null);
+	        
+	        const bundle = [key, params, props, null];
+	        bundle[3] = Draw[key](...params, props);
+
+	        this.objects.push(bundle);
 
 	    }
 
 	}
 
 	assignReadonly(Layer, { getLayersProxy });
-
-	class Canvas {
-
-	    constructor(graph) {
-
-	        this.graph = graph;
-
-	        const canvas = document.createElement('canvas');
-	        graph.wrapper.append(canvas);
-
-	        Object.assign(this, { canvas });
-
-	    }
-
-	    setSize(width, height) {
-
-	        const { canvas } = this;
-
-	        canvas.width = width;
-	        canvas.height = height;
-
-	        let gl = canvas.getContext('webgl2');
-
-	        if (!gl) {
-	            alert('Unable to initialize WebGL. Your browser or machine may not support it.');
-	            return;
-	        }
-
-	        // const shaderProgram = initShaderProgram(gl, vsSource, fsSource)
-
-	    }
-	}
 
 	class Point {
 
@@ -303,110 +441,6 @@ graph div.graph-wrapper canvas {
 }
 `;
 
-	const EPSILON = 1e-6;
-	const notNull = x => x < -EPSILON || x > EPSILON;
-	const ceil = (x, step = 1) => Math.ceil(x / step) * step;
-	const enumerateCeil = (min, max, step) => enumerate({ min:ceil(min, step), max:ceil(max, step), step });
-
-
-
-	// context
-	let parent, view, width, height, colors = ['black'];
-
-
-
-	// initialize context
-	const setup = (_parent, _view, _width, _height) =>
-	    ([parent, view, width, height] = [_parent, _view, _width, _height]);
-
-
-	const lineX = (x, props = {}) => {
-
-	    const { stroke = colors[0], ...rest } = props;
-	    x = view.worldX(x) * width;
-	    dosvg('line', { x1:x, x2:x, y1:0, y2:height, stroke, parent, ...rest });
-
-	};
-
-
-
-	const lineY = (y, props = {}) => {
-
-	    const { stroke = colors[0], ...rest } = props;
-	    y = (1 - view.worldY(y)) * height;
-	    dosvg('line', { x1:0, x2:width, y1:y, y2:y, stroke, parent, ...rest });
-
-	};
-
-
-
-	const grid = (step = 1) => {
-
-	    for (let x of enumerateCeil(view.x, view.maxX, step))
-	        lineX(x, { stroke:notNull(x) ? '#0001' : '#000' });
-
-	    for (let y of enumerateCeil(view.y, view.maxY, step))
-	        lineY(y, { stroke:notNull(y) ? '#0001' : '#000' });
-
-	};
-
-
-
-	const func = (f, props = {}) => {
-
-	    const getY = x => {
-
-	        let y = f(view.localX(x / width));
-	        return (1 - view.worldY(y)) * height
-
-	    };
-
-	    const pointString = (x, y, decimal = 1) => x.toFixed(decimal) + ',' + y.toFixed(decimal);
-
-	    const { stroke = colors[0], blend, ...rest } = props;
-
-	    const margin = 1 + parseFloat(props['stroke-width'] || 0) / 2;
-	    const min = -margin, max = width + margin;
-	    const points = [...enumerate({ min, max, step:3, includeMax:true })]
-	        .map(x => pointString(x, getY(x)))
-	        .join(' ');
-
-	    return dosvg('polyline', { points, parent, stroke, fill:'none', ...rest })
-
-	};
-
-
-
-	const point = (x, y, props = {}) => {
-
-	    const {
-
-	        color = 'black',
-	        label = null,
-
-	    } = props;
-
-	    const cx = view.worldY(x) * width;
-	    const cy = (1 - view.worldY(y)) * height;
-
-	    dosvg('circle', { cx, cy, r:4, parent, fill:color, stroke:'none' });
-
-	    if (label)
-	        dosvg('text', { x:cx + 5, y:cy,
-	            style: 'font-size: 8px;',
-	            children:label, parent, fill:color, stroke:'none' });
-
-	};
-
-	var Draw = /*#__PURE__*/Object.freeze({
-		setup: setup,
-		lineX: lineX,
-		lineY: lineY,
-		grid: grid,
-		func: func,
-		point: point
-	});
-
 	class Graph {
 
 	    constructor(element) {
@@ -423,9 +457,8 @@ graph div.graph-wrapper canvas {
 	        const bounds = dosvg('rect', { parent:svg, fill:'none', stroke:'black' });
 	        const layers = Layer.getLayersProxy(this);
 	        const pointer = new Pointer(this);
-	        const canvas = new Canvas(this);
 
-	        Object.assign(this, { bounds, layers, pointer, canvas });
+	        Object.assign(this, { bounds, layers, pointer });
 
 	        this.setSize(width, height);
 
@@ -458,7 +491,8 @@ graph div.graph-wrapper canvas {
 	        wrapper.style.width = `${width}px`;
 	        wrapper.style.height = `${height}px`;
 
-	        canvas.setSize(width, height);
+	        for (const canvas of wrapper.querySelectorAll('canvas'))
+	            canvas.setSize(width, height);
 
 	        this.draw();
 
@@ -483,7 +517,13 @@ graph div.graph-wrapper canvas {
 	        for (let child of element.children) {
 
 	            const { localName:name } = child;
-	            const params = new Function(`return [${child.innerText}]`)();
+	            const text = removeLineHeadingSpaces(child.innerText);
+	            child.innerText = text;
+
+	            if (name === 'shader')
+	                continue
+
+	            const params = new Function(`return [${text}]`)();
 
 	            const { blend, ...props } = [...child.attributes].reduce((acc, { name, value }) => ({ [name]:value, ...acc }), {});
 
@@ -497,6 +537,16 @@ graph div.graph-wrapper canvas {
 	        element.graph = this;
 
 	        this.draw();
+
+	    }
+
+	    isVisible() {
+
+	        const { x, y, width, height } = this.wrapper.getBoundingClientRect();
+	        const rectWrapper = new Rectangle(x, y, width, height);
+	        const rectWindow = new Rectangle(0, 0, window.innerWidth, window.innerHeight);
+
+	        return rectWrapper.union(rectWindow).area > 0
 
 	    }
 

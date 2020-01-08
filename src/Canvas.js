@@ -31,7 +31,7 @@ class Canvas {
         this.graph = graph
 
         const canvas = document.createElement('canvas')
-        graph.wrapper.append(canvas)
+        // graph.wrapper.append(canvas)
 
         Object.assign(this, { canvas })
 
