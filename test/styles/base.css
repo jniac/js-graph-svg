@@ -1,18 +1,18 @@
 body, body > * {
 	margin: 0;
 	box-sizing: border-box;
-	line-height: 100%;
 }
 
 body {
 	padding: 64px;
 	background-color: #e6e6e6;
 	color: #222;
-    font-family: 'Roboto Mono', monospace;
+	font-family: 'Roboto Mono', monospace;
 }
 
 h1 {
-    margin-bottom: 12px;
+	margin-bottom: 12px;
+	line-height: 100%;
 }
 
 graph {
@@ -22,6 +22,8 @@ graph {
 graph > * {
 	white-space: pre;
 	tab-size: 4;
+	font-size: 12px;
+	line-height: 120%;
 }
 graph div.graph-wrapper {
 	margin-top: 16px;

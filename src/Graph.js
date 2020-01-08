@@ -18,11 +18,11 @@ class Graph {
 
         Object.assign(this, { wrapper, svg, view })
 
-        const bounds = dosvg('rect', { parent:svg, fill:'none', stroke:'black' })
+        const border = dosvg('rect', { parent:svg, fill:'none', stroke:'black' })
         const layers = Layer.getLayersProxy(this)
         const pointer = new Pointer(this)
 
-        Object.assign(this, { bounds, layers, pointer })
+        Object.assign(this, { border, layers, pointer })
 
         this.setSize(width, height)
 
@@ -46,11 +46,11 @@ class Graph {
 
     setSize(width, height) {
 
-        const { wrapper, svg, bounds, view, canvas } = this
+        const { wrapper, svg, border, view, canvas } = this
 
         Object.assign(this, { width, height })
         dosvg(svg, { width, height })
-        dosvg(bounds, { x:.5, y:.5, width:width - 1, height:height - 1 })
+        dosvg(border, { x:.5, y:.5, width:width - 1, height:height - 1 })
 
         wrapper.style.width = `${width}px`
         wrapper.style.height = `${height}px`
@@ -78,7 +78,12 @@ class Graph {
 
         }
 
+        const { border } = this
+        dosvg(border, { stroke:element.getAttribute('border') })
+
         for (let child of element.children) {
+
+            // child.style.display = 'none'
 
             const { localName:name } = child
             const text = removeLineHeadingSpaces(child.innerText)
