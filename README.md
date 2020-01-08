@@ -1,4 +1,4 @@
 # js-graph-svg
 graph tool for function visualization
 
-[online demo](test/)
+[online demo](https://jniac.github.io/js-graph-svg/test/)
