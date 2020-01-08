@@ -21,6 +21,7 @@ graph {
 }
 graph > * {
 	white-space: pre;
+	tab-size: 4;
 }
 graph div.graph-wrapper {
 	margin-top: 16px;

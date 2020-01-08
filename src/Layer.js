@@ -14,6 +14,19 @@ const getLayersProxy = (graph) => new Proxy({}, {
 
 })
 
+const safeDraw = (key, params, props) => {
+
+    if (!(key in Draw)) {
+
+        console.warn(`Layer cannot draw [${key}]`)
+        return
+
+    }
+
+    return Draw[key](...params, props)
+
+}
+
 class Layer {
 
     constructor(graph, name) {
@@ -44,16 +57,9 @@ class Layer {
 
             const [key, params, props, current] = bundle
 
-            if (!(key in this)) {
-
-                console.warn(`layer "${this.name}" cannot draw [${key}]`)
-                continue
-
-            }
-
             // Draw and save element
             Draw.setup(g, view, width, height, current)
-            bundle[3] = Draw[key](...params, props)
+            bundle[3] = safeDraw(key, params, props)
 
         }
 
@@ -64,9 +70,9 @@ class Layer {
         const { g } = this
         const { view, width, height } = this.graph
         Draw.setup(g, view, width, height, null)
-        
+
         const bundle = [key, params, props, null]
-        bundle[3] = Draw[key](...params, props)
+        bundle[3] = safeDraw(key, params, props)
 
         this.objects.push(bundle)
 

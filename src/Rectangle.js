@@ -52,6 +52,9 @@ export default class Rectangle {
 
     get area() { return this.width * this.height }
 
+    // handy
+    get minX() { return this.x }
+    get minY() { return this.y }
     get maxX() { return this.x + this.width }
     get maxY() { return this.y + this.height }
 

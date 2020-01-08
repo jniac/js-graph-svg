@@ -1,6 +1,6 @@
 /*
 	graph-svg.js
-	2020-01-08 11:54 GMT(+1)
+	2020-01-08 14:07 GMT(+1)
 	js toolkit
 	https://github.com/jniac/js-graph-svg
 */
@@ -58,6 +58,9 @@ class Rectangle {
 
     get area() { return this.width * this.height }
 
+    // handy
+    get minX() { return this.x }
+    get minY() { return this.y }
     get maxX() { return this.x + this.width }
     get maxY() { return this.y + this.height }
 
@@ -119,12 +122,134 @@ const assignReadonly = (target, { enumerable = false, ...props }) => {
 
 const removeLineHeadingSpaces = str => {
 
-    const lines = str.split('\n').filter(line => /\S/.test(line));
+    const lines = str.split('\n');
+
+    while (/\S/.test(lines[0]) === false)
+        lines.shift();
+
     const [heading] = /^\s*/.exec(lines[0]);
 
     return lines.map(line => line.replace(new RegExp(`^${heading}`), '')).join('\n')
 
 };
+
+const vsSource = `
+attribute vec3 pos;
+attribute vec2 a_uv;
+varying highp vec2 uv;
+void main() {
+    gl_Position = vec4(pos, 1.0);
+    uv = a_uv;
+}
+`;
+
+function getShaderProgram(gl, vs, fs) {
+
+	let prog = gl.createProgram();
+
+	let addshader = function(type, source) {
+
+		let s = gl.createShader((type == 'vertex') ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER);
+		gl.shaderSource(s, source);
+		gl.compileShader(s);
+
+		if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+
+            throw new Error(`Could not compile ${type} shader:\n\n: ${gl.getShaderInfoLog(s)}`)
+		}
+
+		gl.attachShader(prog, s);
+
+	};
+
+	addshader('vertex', vs);
+	addshader('fragment', fs);
+	gl.linkProgram(prog);
+
+	if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+
+		throw new Error('Could not link the shader program!')
+
+	}
+	return prog
+}
+
+function attributeSetFloats(gl, prog, attrName, rsize, arr) {
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
+
+    let attrLoc = gl.getAttribLocation(prog, attrName);
+	gl.enableVertexAttribArray(attrLoc);
+	gl.vertexAttribPointer(attrLoc, rsize, gl.FLOAT, false, 0, 0);
+
+}
+
+function draw(gl, prog, uv) {
+
+	gl.clearColor(0, 0, 0, 0);
+	gl.clear(gl.COLOR_BUFFER_BIT);
+
+	gl.useProgram(prog);
+
+	let timeloc = gl.getUniformLocation(prog, 'time');
+	gl.uniform1f(timeloc, performance.now() / 1e3);
+
+    attributeSetFloats(gl, prog, 'a_uv', 2, uv);
+
+	attributeSetFloats(gl, prog, "pos", 3, [
+		-1, -1, 0,
+		-1, 1, 0,
+		1, -1, 0,
+		1, 1, 0
+	]);
+
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+
+
+class ShaderCanvas {
+
+    constructor(width, height, view, fragmentShader) {
+
+        const canvas = document.createElement('canvas');
+        canvas.shaderCanvas = this;
+
+        Object.assign(this, { canvas });
+
+        // let ctx = canvas.getContext('2d')
+        // ctx.fillRect(0, 0, 200, 100)
+
+        let gl = canvas.getContext('webgl2');
+
+        if (!gl) {
+            alert('Unable to initialize WebGL. Your browser or machine may not support it.');
+            return;
+        }
+
+        const prog = getShaderProgram(gl, vsSource, fragmentShader);
+
+        const loop = () => {
+
+            const uv = [
+                view.minX, view.minY,
+                view.minX, view.maxY,
+                view.maxX, view.minY,
+                view.maxX, view.maxY,
+            ];
+
+            draw(gl, prog, uv);
+
+            requestAnimationFrame(loop);
+
+        };
+
+        loop();
+
+    }
+
+}
 
 const EPSILON = 1e-6;
 const notNull = x => x < -EPSILON || x > EPSILON;
@@ -164,15 +289,29 @@ const lineY = (y, props = {}) => {
 
 
 
-const grid = (step = 1) => {
+const grid = (_, props) => {
 
     parent = dosvg('g', { parent });
+    parent.classList.add('grid');
+
+    let {
+
+        color = colors[0],
+        step = 1,
+
+    } = props;
+
+    parent.innerHTML = '';
+
+    step = parseFloat(step);
 
     for (let x of enumerateCeil(view.x, view.maxX, step))
-        lineX(x, { stroke:notNull(x) ? '#0001' : '#000' });
+        lineX(x, { stroke:color, opacity:notNull(x) ? .1 : 1 });
 
     for (let y of enumerateCeil(view.y, view.maxY, step))
-        lineY(y, { stroke:notNull(y) ? '#0001' : '#000' });
+        lineY(y, { stroke:color, opacity:notNull(y) ? .1 : 1 });
+
+    return parent
 
 };
 
@@ -207,20 +346,60 @@ const point = (x, y, props = {}) => {
 
     const {
 
-        color = 'black',
+        color = colors[0],
         label = null,
+        ...rest
 
     } = props;
 
     const cx = view.worldY(x) * width;
     const cy = (1 - view.worldY(y)) * height;
 
-    dosvg('circle', { cx, cy, r:4, parent, fill:color, stroke:'none' });
+    const circle = () => dosvg(current || 'circle', { cx, cy, r:4, parent, fill:color, stroke:'none', ...rest });
 
-    if (label)
+    if (label) {
+
+        parent = dosvg('g', { parent });
+        circle();
         dosvg('text', { x:cx + 5, y:cy,
             style: 'font-size: 8px;',
             children:label, parent, fill:color, stroke:'none' });
+
+        return parent
+
+    } else {
+
+        return circle()
+
+    }
+
+};
+
+const shader = (fragmentShader) => {
+
+    if (current)
+        return current
+
+    // NOTE: there is a bug with canvas & foreignObject, and no workaround
+    // so foreignObject cannot be used in background...
+    // current = dosvg('foreignObject', { parent, x:0, y:0, width, height })
+    // current.append()
+
+    const { canvas } = new ShaderCanvas(width, height, view, fragmentShader);
+
+    const getDiv = element => {
+
+        while(element && element.localName !== 'div')
+            element = element.parentElement;
+
+        return element
+
+    };
+
+    const wrapper = getDiv(parent);
+    wrapper.insertBefore(canvas, wrapper.firstChild);
+
+    return current
 
 };
 
@@ -230,7 +409,8 @@ var Draw = /*#__PURE__*/Object.freeze({
 	lineY: lineY,
 	grid: grid,
 	func: func,
-	point: point
+	point: point,
+	shader: shader
 });
 
 const getLayersProxy = (graph) => new Proxy({}, {
@@ -245,6 +425,19 @@ const getLayersProxy = (graph) => new Proxy({}, {
     },
 
 });
+
+const safeDraw = (key, params, props) => {
+
+    if (!(key in Draw)) {
+
+        console.warn(`Layer cannot draw [${key}]`);
+        return
+
+    }
+
+    return Draw[key](...params, props)
+
+};
 
 class Layer {
 
@@ -276,16 +469,9 @@ class Layer {
 
             const [key, params, props, current] = bundle;
 
-            if (!(key in this)) {
-
-                console.warn(`layer "${this.name}" cannot draw [${key}]`);
-                continue
-
-            }
-
             // Draw and save element
             setup(g, view, width, height, current);
-            bundle[3] = Draw[key](...params, props);
+            bundle[3] = safeDraw(key, params, props);
 
         }
 
@@ -296,9 +482,9 @@ class Layer {
         const { g } = this;
         const { view, width, height } = this.graph;
         setup(g, view, width, height, null);
-        
+
         const bundle = [key, params, props, null];
-        bundle[3] = Draw[key](...params, props);
+        bundle[3] = safeDraw(key, params, props);
 
         this.objects.push(bundle);
 
@@ -486,7 +672,7 @@ class Graph {
         wrapper.style.height = `${height}px`;
 
         for (const canvas of wrapper.querySelectorAll('canvas'))
-            canvas.setSize(width, height);
+            canvas.shaderCanvas.setSize(width, height);
 
         this.draw();
 
@@ -514,10 +700,9 @@ class Graph {
             const text = removeLineHeadingSpaces(child.innerText);
             child.innerText = text;
 
-            if (name === 'shader')
-                continue
-
-            const params = new Function(`return [${text}]`)();
+            const params = /func|point/.test(name)
+                ? new Function(`return [${text}]`)()
+                : [text];
 
             const { blend, ...props } = [...child.attributes].reduce((acc, { name, value }) => ({ [name]:value, ...acc }), {});
 
@@ -529,8 +714,6 @@ class Graph {
         }
 
         element.graph = this;
-
-        this.draw();
 
     }
 
@@ -546,13 +729,7 @@ class Graph {
 
     draw() {
 
-        let { grid: grid$$1, ...others } = this.layers;
-        let step = 1;
-
-        grid$$1.clear();
-        grid$$1.grid(step);
-
-        for (let layer of Object.values(others))
+        for (let layer of Object.values(this.layers))
             layer.draw();
 
     }
@@ -563,7 +740,7 @@ for (let [name, method] of Object.entries(Draw)) {
 
     Graph.prototype[name] = function(...args) {
 
-        this.layers.main[name](...args);
+        return this.layers.main[name](...args)
 
     };
 
@@ -572,7 +749,7 @@ for (let [name, method] of Object.entries(Draw)) {
         const { g } = this;
         const { view, width, height } = this.graph;
         setup(g, view, width, height);
-        method(...args);
+        return method(...args)
 
     };
 

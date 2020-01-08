@@ -1,4 +1,5 @@
 import { dosvg, enumerate } from './helpers.js'
+import ShaderCanvas from './ShaderCanvas.js'
 
 
 
@@ -40,15 +41,29 @@ export const lineY = (y, props = {}) => {
 
 
 
-export const grid = (step = 1) => {
+export const grid = (_, props) => {
 
     parent = dosvg('g', { parent })
+    parent.classList.add('grid')
+
+    let {
+
+        color = colors[0],
+        step = 1,
+
+    } = props
+
+    parent.innerHTML = ''
+
+    step = parseFloat(step)
 
     for (let x of enumerateCeil(view.x, view.maxX, step))
-        lineX(x, { stroke:notNull(x) ? '#0001' : '#000' })
+        lineX(x, { stroke:color, opacity:notNull(x) ? .1 : 1 })
 
     for (let y of enumerateCeil(view.y, view.maxY, step))
-        lineY(y, { stroke:notNull(y) ? '#0001' : '#000' })
+        lineY(y, { stroke:color, opacity:notNull(y) ? .1 : 1 })
+
+    return parent
 
 }
 
@@ -83,19 +98,59 @@ export const point = (x, y, props = {}) => {
 
     const {
 
-        color = 'black',
+        color = colors[0],
         label = null,
+        ...rest
 
     } = props
 
     const cx = view.worldY(x) * width
     const cy = (1 - view.worldY(y)) * height
 
-    dosvg('circle', { cx, cy, r:4, parent, fill:color, stroke:'none' })
+    const circle = () => dosvg(current || 'circle', { cx, cy, r:4, parent, fill:color, stroke:'none', ...rest })
 
-    if (label)
+    if (label) {
+
+        parent = dosvg('g', { parent })
+        circle()
         dosvg('text', { x:cx + 5, y:cy,
             style: 'font-size: 8px;',
             children:label, parent, fill:color, stroke:'none' })
+
+        return parent
+
+    } else {
+
+        return circle()
+
+    }
+
+}
+
+export const shader = (fragmentShader) => {
+
+    if (current)
+        return current
+
+    // NOTE: there is a bug with canvas & foreignObject, and no workaround
+    // so foreignObject cannot be used in background...
+    // current = dosvg('foreignObject', { parent, x:0, y:0, width, height })
+    // current.append()
+
+    const { canvas } = new ShaderCanvas(width, height, view, fragmentShader)
+
+    const getDiv = element => {
+
+        while(element && element.localName !== 'div')
+            element = element.parentElement
+
+        return element
+
+    }
+
+    const wrapper = getDiv(parent)
+    wrapper.insertBefore(canvas, wrapper.firstChild)
+
+    return current
 
 }

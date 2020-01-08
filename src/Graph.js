@@ -56,7 +56,7 @@ class Graph {
         wrapper.style.height = `${height}px`
 
         for (const canvas of wrapper.querySelectorAll('canvas'))
-            canvas.setSize(width, height)
+            canvas.shaderCanvas.setSize(width, height)
 
         this.draw()
 
@@ -84,10 +84,9 @@ class Graph {
             const text = removeLineHeadingSpaces(child.innerText)
             child.innerText = text
 
-            if (name === 'shader')
-                continue
-
-            const params = new Function(`return [${text}]`)()
+            const params = /func|point/.test(name)
+                ? new Function(`return [${text}]`)()
+                : [text]
 
             const { blend, ...props } = [...child.attributes].reduce((acc, { name, value }) => ({ [name]:value, ...acc }), {})
 
@@ -99,8 +98,6 @@ class Graph {
         }
 
         element.graph = this
-
-        this.draw()
 
     }
 
@@ -116,13 +113,7 @@ class Graph {
 
     draw() {
 
-        let { grid, ...others } = this.layers
-        let step = 1
-
-        grid.clear()
-        grid.grid(step)
-
-        for (let layer of Object.values(others))
+        for (let layer of Object.values(this.layers))
             layer.draw()
 
     }
@@ -133,7 +124,7 @@ for (let [name, method] of Object.entries(Draw)) {
 
     Graph.prototype[name] = function(...args) {
 
-        this.layers.main[name](...args)
+        return this.layers.main[name](...args)
 
     }
 
@@ -142,7 +133,7 @@ for (let [name, method] of Object.entries(Draw)) {
         const { g } = this
         const { view, width, height } = this.graph
         Draw.setup(g, view, width, height)
-        method(...args)
+        return method(...args)
 
     }
 

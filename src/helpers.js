@@ -47,7 +47,11 @@ const assignReadonly = (target, { enumerable = false, ...props }) => {
 
 const removeLineHeadingSpaces = str => {
 
-    const lines = str.split('\n').filter(line => /\S/.test(line))
+    const lines = str.split('\n')
+
+    while (/\S/.test(lines[0]) === false)
+        lines.shift()
+
     const [heading] = /^\s*/.exec(lines[0])
 
     return lines.map(line => line.replace(new RegExp(`^${heading}`), '')).join('\n')

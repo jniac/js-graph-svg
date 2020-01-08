@@ -5,6 +5,7 @@
 		<title>test</title>
 		<link rel="stylesheet" href="styles/base.css">
 		<link href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,100i,300,300i,400,400i,500,500i,700,700i&display=swap" rel="stylesheet">
+		<script src="https://jniac.github.io/js-kit/build/kit.js"></script>
 	</head>
 	<body>
 		<h1><span style="font-size: 2em;">A sinus,</span><br> a parabola & <br>a straight line.</h1>
@@ -14,30 +15,44 @@
 			<func stroke-width="110" stroke="purple" blend="multiply">x => Math.sin(x)</func>
 			<func stroke-width="10" stroke="#09f">x => x ** 2</func>
 			<func stroke-width="3" stroke="#fd0">x => -x - .33</func>
+			<grid></grid>
 		</graph>
 
 		<h1><span style="font-size: 2em;">A blank,</span><br> empty graph.</h1>
 		<graph>
+			<grid></grid>
 		</graph>
 
 		<h1><span style="font-size: 2em;">Time based</span><br>functions.</h1>
 		<graph
 		 	id="time"
 			size="600,600">
+			<point>0,2.5</point>
+			<point>0,-2.5</point>
+			<grid step="2.5"></grid>
 		</graph>
 
 		<h1><span style="font-size: 2em;">GLSL</span><br>Funky right?</h1>
 		<graph
+			view="-1.2,-1.2,2.4,2.4"
 			size="600,600">
 			<shader>
 				precision highp float;
 				uniform float time;
 				varying highp vec2 uv;
 
+				vec4 c1 = vec4(0.96, 0.89, 0.19, 1.00);
+				vec4 c2 = vec4(0.48, 0.00, 0.48, 1.00);
+
+				float sin01(float x) { return .5 + .5 * sin(x); }
+
 				void main() {
-					gl_FragColor = vec4(uv, sin(time) * .5 + .5, 1);
+					float d = time * 5. + length(uv) * 10.;
+					vec4 c = mix(c1, c2, sin01(time));
+					gl_FragColor = c * sin01(d);
 				}
 			</shader>
+			<grid></grid>
 		</graph>
 
 		<script src="from-src.js" type="module"></script>
