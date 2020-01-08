@@ -1,6 +1,6 @@
 /*
 	graph-svg.js
-	2020-01-08 14:47 GMT(+1)
+	2020-01-08 15:38 GMT(+1)
 	js toolkit
 	https://github.com/jniac/js-graph-svg
 */
@@ -642,11 +642,11 @@ graph div.graph-wrapper canvas {
 
 	        Object.assign(this, { wrapper, svg, view });
 
-	        const bounds = dosvg('rect', { parent:svg, fill:'none', stroke:'black' });
+	        const border = dosvg('rect', { parent:svg, fill:'none', stroke:'black' });
 	        const layers = Layer.getLayersProxy(this);
 	        const pointer = new Pointer(this);
 
-	        Object.assign(this, { bounds, layers, pointer });
+	        Object.assign(this, { border, layers, pointer });
 
 	        this.setSize(width, height);
 
@@ -670,11 +670,11 @@ graph div.graph-wrapper canvas {
 
 	    setSize(width, height) {
 
-	        const { wrapper, svg, bounds, view, canvas } = this;
+	        const { wrapper, svg, border, view, canvas } = this;
 
 	        Object.assign(this, { width, height });
 	        dosvg(svg, { width, height });
-	        dosvg(bounds, { x:.5, y:.5, width:width - 1, height:height - 1 });
+	        dosvg(border, { x:.5, y:.5, width:width - 1, height:height - 1 });
 
 	        wrapper.style.width = `${width}px`;
 	        wrapper.style.height = `${height}px`;
@@ -702,7 +702,12 @@ graph div.graph-wrapper canvas {
 
 	        }
 
+	        const { border } = this;
+	        dosvg(border, { stroke:element.getAttribute('border') });
+
 	        for (let child of element.children) {
+
+	            // child.style.display = 'none'
 
 	            const { localName:name } = child;
 	            const text = removeLineHeadingSpaces(child.innerText);
