@@ -19,6 +19,7 @@ class Layer {
 
         this.graph = graph
         this.g = dosvg('g', { id:name })
+        this.objects = []
 
         graph.svg.insertBefore(this.g, graph.bounds)
 
@@ -27,6 +28,24 @@ class Layer {
     clear() {
 
         this.g.innerHTML = ''
+
+    }
+
+    draw() {
+
+        this.clear()
+
+        for (const [name, params, props] of this.objects) {
+
+            this[name](...params, props)
+
+        }
+
+    }
+
+    add(name, params, props) {
+
+        this.objects.push([name, params, props])
 
     }
 

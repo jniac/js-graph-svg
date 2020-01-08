@@ -21,5 +21,6 @@ graph {
 }
 graph div.graph-wrapper {
 	margin-top: 16px;
+	background: #f3f3f3;
 	box-shadow: #0099ff 32px 32px 32px;
 }

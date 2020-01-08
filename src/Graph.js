@@ -1,6 +1,7 @@
 import Rectangle from './Rectangle.js'
 import Layer from './Layer.js'
 import Canvas from './Canvas.js'
+import Pointer from './Pointer.js'
 import style from './style.js'
 import * as Draw from './Draw.js'
 import { dosvg, enumerate } from './helpers.js'
@@ -15,18 +16,33 @@ class Graph {
         const width = 400, height = 400
         const svg = dosvg('svg', { width, height, parent:wrapper })
         const view = new Rectangle(-4, -4, 8, 8)
-        const layers = Layer.getLayersProxy(this)
+
+        Object.assign(this, { wrapper, svg, view })
 
         const bounds = dosvg('rect', { parent:svg, fill:'none', stroke:'black' })
+        const layers = Layer.getLayersProxy(this)
+        const pointer = new Pointer(this)
+        const canvas = new Canvas(this)
 
-        Object.assign(this, { wrapper, svg, bounds, view, layers })
-
-        this.canvas = new Canvas(this)
+        Object.assign(this, { bounds, layers, pointer, canvas })
 
         this.setSize(width, height)
 
         if (element)
             this.init(element)
+
+        wrapper.addEventListener('mousemove', (e) => {
+
+            let { offsetX:mouseX, offsetY:mouseY } = e
+            mouseX /= width
+            mouseY /= height
+            mouseX = view.localX(mouseX)
+            mouseY = view.localX(1 - mouseY)
+            Object.assign(this, { mouseX, mouseY })
+
+            svg.dispatchEvent(new CustomEvent('move'))
+
+        })
 
     }
 
@@ -41,13 +57,9 @@ class Graph {
         wrapper.style.width = `${width}px`
         wrapper.style.height = `${height}px`
 
-        let { grid } = this.layers
-        let step = 1
-
-        grid.clear()
-        grid.grid(step)
-
         canvas.setSize(width, height)
+
+        this.draw()
 
     }
 
@@ -77,11 +89,26 @@ class Graph {
             if (blend)
                 props.style = `mix-blend-mode:${blend}`
 
-            this.layers.main[name](...params, props)
+            this.layers.main.add(name, params, props)
 
         }
 
         element.graph = this
+
+        this.draw()
+
+    }
+
+    draw() {
+
+        let { grid, ...others } = this.layers
+        let step = 1
+
+        grid.clear()
+        grid.grid(step)
+
+        for (let layer of Object.values(others))
+            layer.draw()
 
     }
 

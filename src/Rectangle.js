@@ -13,6 +13,13 @@ export default class Rectangle {
 
     }
 
+    offset(x, y) {
+
+        this.x += x
+        this.y += y
+
+    }
+
     get maxX() { return this.x + this.width }
     get maxY() { return this.y + this.height }
 
