@@ -1,4 +1,5 @@
 const svgNS = 'http://www.w3.org/2000/svg'
+// const svgNS = 'http://www.w3.org/TR/SVG20/'
 
 function* enumerate({ min = 0, max, step = 1, includeMax = false }) {
 

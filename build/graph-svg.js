@@ -1,6 +1,6 @@
 /*
 	graph-svg.js
-	2020-01-08 14:17 GMT(+1)
+	2020-01-08 14:47 GMT(+1)
 	js toolkit
 	https://github.com/jniac/js-graph-svg
 */
@@ -80,6 +80,7 @@
 	}
 
 	const svgNS = 'http://www.w3.org/2000/svg';
+	// const svgNS = 'http://www.w3.org/TR/SVG20/'
 
 	function* enumerate({ min = 0, max, step = 1, includeMax = false }) {
 
@@ -391,7 +392,8 @@ void main() {
 	    // current = dosvg('foreignObject', { parent, x:0, y:0, width, height })
 	    // current.append()
 
-	    const { canvas } = new ShaderCanvas(width, height, view, fragmentShader);
+	    const shaderCanvas = new ShaderCanvas(width, height, view, fragmentShader);
+	    const { canvas } = shaderCanvas;
 
 	    const getDiv = element => {
 
@@ -405,7 +407,7 @@ void main() {
 	    const wrapper = getDiv(parent);
 	    wrapper.insertBefore(canvas, wrapper.firstChild);
 
-	    return current
+	    return shaderCanvas
 
 	};
 

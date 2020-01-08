@@ -55,6 +55,29 @@
 			<grid></grid>
 		</graph>
 
+		<h1><span style="font-size: 2em;">Mix</span><br>everything together.</h1>
+		<graph
+			id="mix"
+			view="-1.2,-1.2,2.4,2.4"
+			size="600,600">
+			<shader>
+				precision highp float;
+				uniform float time;
+				varying highp vec2 uv;
+
+				vec4 c = vec4(0.48, 0.00, 0.48, 1.00);
+
+				float sin01(float x) { return .5 + .5 * sin(x); }
+
+				void main() {
+					float d = time * 5. + length(uv) * 10.;
+					gl_FragColor = c * sin01(d);
+				}
+			</shader>
+			<func stroke-width="80" stroke="#09f" blend="multiply">x => x ** 3</func>
+			<grid step='2'></grid>
+		</graph>
+
 		<script src="from-src.js" type="module"></script>
 	</body>
 </html>

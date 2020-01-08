@@ -137,7 +137,8 @@ export const shader = (fragmentShader) => {
     // current = dosvg('foreignObject', { parent, x:0, y:0, width, height })
     // current.append()
 
-    const { canvas } = new ShaderCanvas(width, height, view, fragmentShader)
+    const shaderCanvas = new ShaderCanvas(width, height, view, fragmentShader)
+    const { canvas } = shaderCanvas
 
     const getDiv = element => {
 
@@ -151,6 +152,6 @@ export const shader = (fragmentShader) => {
     const wrapper = getDiv(parent)
     wrapper.insertBefore(canvas, wrapper.firstChild)
 
-    return current
+    return shaderCanvas
 
 }
