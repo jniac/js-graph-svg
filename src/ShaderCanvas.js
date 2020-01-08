@@ -106,7 +106,7 @@ class ShaderCanvas {
         // let ctx = canvas.getContext('2d')
         // ctx.fillRect(0, 0, 200, 100)
 
-        let gl = canvas.getContext('webgl2')
+        let gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
 
         if (!gl) {
             alert('Unable to initialize WebGL. Your browser or machine may not support it.');

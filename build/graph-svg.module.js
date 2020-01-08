@@ -1,6 +1,6 @@
 /*
 	graph-svg.js
-	2020-01-08 14:07 GMT(+1)
+	2020-01-08 14:17 GMT(+1)
 	js toolkit
 	https://github.com/jniac/js-graph-svg
 */
@@ -221,7 +221,7 @@ class ShaderCanvas {
         // let ctx = canvas.getContext('2d')
         // ctx.fillRect(0, 0, 200, 100)
 
-        let gl = canvas.getContext('webgl2');
+        let gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
 
         if (!gl) {
             alert('Unable to initialize WebGL. Your browser or machine may not support it.');
