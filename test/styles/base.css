@@ -1,0 +1,25 @@
+body, body > * {
+	margin: 0;
+	box-sizing: border-box;
+	line-height: 100%;
+}
+
+body {
+	padding: 64px;
+	background-color: #e6e6e6;
+	color: #222;
+    font-family: 'Roboto Mono', monospace;
+}
+
+h1 {
+    margin-bottom: 12px;
+}
+
+graph {
+	margin-top: 16px;
+	margin-bottom: 128px;
+}
+graph div.graph-wrapper {
+	margin-top: 16px;
+	box-shadow: #0099ff 32px 32px 32px;
+}

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>test</title>
+        <link rel="stylesheet" href="styles/base.css">
+		<link href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,100i,300,300i,400,400i,500,500i,700,700i&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <h1><span style="font-size: 2em;">A sinus,</span><br> a curve & <br>a straight line.</h1>
+        <graph
+            id="g1"
+            view="-1.1,-1.1,3,3"
+            size="600,600">
+            <func stroke-width="110" stroke="purple" blend="multiply">x => Math.sin(x)</func>
+            <func stroke-width="10" stroke="#09f">x => x ** 2</func>
+            <func stroke-width="3" stroke="#fd0">x => -x - .33</func>
+        </graph>
+
+        <h1><span style="font-size: 2em;">A blank,</span><br> empty graph.</h1>
+        <graph>
+        </graph>
+
+        <script src="from-src.js" type="module"></script>
+    </body>
+</html>
